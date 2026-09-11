@@ -83,6 +83,23 @@ jobs:
         working-directory: modflow6
         run: pixi run install
 
+      - name: Pin pymake before its meson-only rewrite
+        run: |
+          # pymake 2.0 (modflowpy/pymake#309, #322) builds every target
+          # through a generated meson.build, and that generator only adds
+          # -static-intel for shared-object targets (libmf6.so). Every
+          # ifort-built executable (mp7, mf2005, mfusg, crt, sutra, mfnwt,
+          # swtv4, mf2000, mp6, mflgr, mt3dms) therefore links libifcore.so.5
+          # / libimf.so dynamically instead of statically, and those aren't
+          # present on a normal system or bundled in the zip, so the
+          # binaries fail with "error while loading shared libraries".
+          # Pin to the last commit before the meson default flipped, until
+          # upstream fixes the meson build to static-link the Intel runtime
+          # for executables too.
+          pixi run --manifest-path modflow6/pixi.toml python -m pip install \
+            --force-reinstall --no-deps \
+            "pymake @ git+https://github.com/modflowpy/pymake.git@7c6dbc1"
+
       - name: Get OS tag
         id: ostag
         run: |
